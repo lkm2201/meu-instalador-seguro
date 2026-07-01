@@ -1,4 +1,4 @@
-# 🚀 Instalador Automático (Módulos Protegidos)
+# 🚀 Instalador Progm
 
 Instalação limpa e direta. Os aplicativos exigirão senha após a instalação para serem utilizados.
 
