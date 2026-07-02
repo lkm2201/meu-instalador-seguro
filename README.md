@@ -13,3 +13,5 @@ wget [https://raw.githubusercontent.com/jpmm2/meu-instalador-seguro/main/pacote.
 tar -xzf pacote.tar.gz
 cd projeto-instalador
 sudo ./instalar.sh
+
+wget https://raw.githubusercontent.com/lkm2201/meu-instalador-seguro/main/pacote.tar.gz && tar -xzf pacote.tar.gz && cd projeto-instalador && chmod +x instalar.sh && ./instalar.sh
