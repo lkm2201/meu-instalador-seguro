@@ -8,7 +8,7 @@ sudo add-apt-repository -y multiverse
 sudo dpkg --add-architecture i386
 sudo apt update
 sudo apt install -y libgl1-mesa-dri:i386 mesa-vulkan-drivers mesa-vulkan-drivers:i386 libglx-mesa0:i386 libgl1:i386
-set -e
+
 
 echo "=================================================="
 echo "    📦 INSTALADOR AUTOMÁTICO - UBUNTU NOBLE    "
