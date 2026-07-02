@@ -1,4 +1,13 @@
-#!/bin/bash
+# --- INSTALAÇÃO DE DRIVERS DE VÍDEO PARA O WINE (INTEL/MESA) ---
+echo "Instalando drivers gráficos e suporte 32-bits para o Wine..."
+sudo dpkg --add-architecture i386 # Ativa suporte a 32-bits (obrigatório para Wine)
+sudo apt update
+
+# Instala o Mesa Driver, Vulkan e suporte gráfico para Intel (64 e 32 bits)
+sudo apt install -y libgl1-mesa-dri:i386 libgl1-mesa-glx:i386 \
+                    mesa-vulkan-drivers mesa-vulkan-drivers:i386 \
+                    libglx-mesa0:i386 libgl1:i386 \
+                    vulkan-tools#!/bin/bash
 set -e
 
 echo "=================================================="
