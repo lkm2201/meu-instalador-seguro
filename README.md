@@ -1,4 +1,4 @@
-# 📦 Meu Instalador Seguro (Ubuntu Noble)
+# Progm
 
 Este projeto configura automaticamente o ambiente do **Wine** com os drivers gráficos modernos da **Intel/Mesa (com suporte 32-bits e Vulkan)** e ativa uma **trava global de segurança na aplicação Flask** usando a senha `2255`.
 
