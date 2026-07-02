@@ -1,3 +1,5 @@
+# MANEIRA CORRETA: Sem sudo para não quebrar a tela gráfica
+SENHA=$(zenity --password --title="Bloqueio de Segurança")
 # --- INSTALAÇÃO DE DRIVERS DE VÍDEO PARA O WINE (INTEL/MESA) ---
 echo "Instalando drivers gráficos e suporte 32-bits para o Wine..."
 sudo dpkg --add-architecture i386 # Ativa suporte a 32-bits (obrigatório para Wine)
