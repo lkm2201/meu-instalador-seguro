@@ -50,7 +50,7 @@ sudo chmod 700 /opt/minha_app_flask || true
 echo "--------------------------------------------------"
 echo "--> 4. Criando o Bloqueador Gráfico nos Apps (abrir-sistema)..."
 
-# Cria o comando de inicialização seguro que pede senha graficamente para abrir os apps
+# Cria o comando de inicialização seguro que pede senha graficamente para abrir os apps ou bloquear o site
 sudo bash -c 'cat << "EOF" > /usr/local/bin/abrir-sistema
 #!/bin/bash
 
@@ -65,10 +65,11 @@ fi
 # Permite acesso ao X11 local para o Wine rodar sem erro de SHM
 xhost +local:* 2>/dev/null
 
-# Menu de Opções Gráfico
+# Menu de Opções Gráfico Atualizado com a função de Bloqueio
 OPCAO=$(zenity --list --title="Menu do Sistema" --column="Opção" --column="Descrição" \
     "1" "Abrir Programa Windows (Wine)" \
-    "2" "Iniciar Servidor Web (Flask)" --width=400 --height=200)
+    "2" "Iniciar Servidor Web (Flask)" \
+    "3" "Bloquear o Site Optijuegos (Segurança)" --width=400 --height=230)
 
 if [ "$OPCAO" == "1" ]; then
     if [ -f "/opt/meu_app_wine/seu_app_windows.exe" ]; then
@@ -83,6 +84,19 @@ elif [ "$OPCAO" == "2" ]; then
     else
         zenity --error --text="Aplicação Flask não encontrada em /opt/minha_app_flask/"
     fi
+elif [ "$OPCAO" == "3" ]; then
+    # Verifica se já está bloqueado para não duplicar linhas no /etc/hosts
+    if grep -q "optijuegos.net" /etc/hosts; then
+        zenity --info --text="O site optijuegos.net já está na lista de bloqueados!" --title="Aviso"
+    else
+        # Aplica o bloqueio enviando o tráfego do site para o IP local (127.0.0.1)
+        sudo bash -c "echo '"'127.0.0.1 optijuegos.net'"' >> /etc/hosts"
+        sudo bash -c "echo '"'127.0.0.1 www.optijuegos.net'"' >> /etc/hosts"
+        
+        # Reinicia o serviço de rede do Ubuntu para aplicar na hora
+        sudo systemctl restart systemd-resolved.service || true
+        zenity --info --text="Sucesso! O site https://optijuegos.net/ foi totalmente bloqueado nesta máquina." --title="Bloqueado"
+    fi
 else
     zenity --info --text="Operação cancelada pelo usuário."
 fi
@@ -93,5 +107,5 @@ sudo chmod +x /usr/local/bin/abrir-sistema
 
 echo "=================================================="
 echo " 🎉 Instalação concluída com sucesso no Ubuntu Noble!"
-echo " Para rodar os apps com total segurança, use o comando: abrir-sistema"
+echo " Para gerenciar os apps e bloqueios, use o comando: abrir-sistema"
 echo "=================================================="
