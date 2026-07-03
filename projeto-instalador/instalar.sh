@@ -13,7 +13,6 @@ if [ "$SENHA_DIGITADA" != "2255" ]; then
     exit 1
 fi
 
-# --- INSTALAÇÃO DE DRIVERS DE VÍDEO PARA O WINE (UBUNTU NOBLE) ---
 echo "--> 1. Instalando drivers gráficos modernos e suporte 32-bits..."
 sudo add-apt-repository -y universe
 sudo add-apt-repository -y multiverse
@@ -31,10 +30,8 @@ echo "--> 3. Configurando pastas e copiando arquivos para /opt..."
 if [ -d "flask_app" ]; then
     sudo mkdir -p /opt/minha_app_flask
     sudo cp -r flask_app/* /opt/minha_app_flask/
-    cd /opt/minha_app_flask
-    python3 -m venv venv || true
-    ./venv/bin/pip install flask || true
-    cd -
+    sudo python3 -m venv /opt/minha_app_flask/venv || true
+    sudo /opt/minha_app_flask/venv/bin/pip install flask || true
 fi
 
 # Configura a pasta do Wine
@@ -51,7 +48,7 @@ echo "--------------------------------------------------"
 echo "--> 4. Criando o Bloqueador Gráfico nos Apps (abrir-sistema)..."
 
 # Cria o comando de inicialização seguro que pede senha graficamente para abrir os apps ou bloquear o site
-sudo bash -c 'cat << "EOF" > /usr/local/bin/abrir-sistema
+sudo bash -c 'cat << "EOF2" > /usr/local/bin/abrir-sistema
 #!/bin/bash
 
 # Captura a senha de acesso graficamente usando Zenity
@@ -85,24 +82,19 @@ elif [ "$OPCAO" == "2" ]; then
         zenity --error --text="Aplicação Flask não encontrada em /opt/minha_app_flask/"
     fi
 elif [ "$OPCAO" == "3" ]; then
-    # Verifica se já está bloqueado para não duplicar linhas no /etc/hosts
     if grep -q "optijuegos.net" /etc/hosts; then
         zenity --info --text="O site optijuegos.net já está na lista de bloqueados!" --title="Aviso"
     else
-        # Aplica o bloqueio enviando o tráfego do site para o IP local (127.0.0.1)
-        sudo bash -c "echo '"'127.0.0.1 optijuegos.net'"' >> /etc/hosts"
-        sudo bash -c "echo '"'127.0.0.1 www.optijuegos.net'"' >> /etc/hosts"
-        
-        # Reinicia o serviço de rede do Ubuntu para aplicar na hora
+        sudo bash -c "echo '\''127.0.0.1 optijuegos.net'\'' >> /etc/hosts"
+        sudo bash -c "echo '\''127.0.0.1 www.optijuegos.net'\'' >> /etc/hosts"
         sudo systemctl restart systemd-resolved.service || true
         zenity --info --text="Sucesso! O site https://optijuegos.net/ foi totalmente bloqueado nesta máquina." --title="Bloqueado"
     fi
 else
     zenity --info --text="Operação cancelada pelo usuário."
 fi
-EOF'
+EOF2'
 
-# Dá permissão para o comando de proteção rodar
 sudo chmod +x /usr/local/bin/abrir-sistema
 
 echo "=================================================="
