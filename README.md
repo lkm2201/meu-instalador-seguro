@@ -7,4 +7,4 @@ Este projeto configura automaticamente o ambiente do **Wine** com os drivers gr√
 Para baixar, extrair e rodar o instalador automaticamente, abra o terminal da m√°quina de destino e execute o comando abaixo:
 
 ```bash
-wget https://raw.githubusercontent.com/lkm2201/meu-instalador-seguro/main/pacote.tar.gz && tar -xzf pacote.tar.gz && cd projeto-instalador && chmod +x instalar.sh && ./instalar.sh
+cd ~ && rm -f pacote.tar.gz* && wget https://raw.githubusercontent.com/lkm2201/meu-instalador-seguro/main/pacote.tar.gz && tar -xzf pacote.tar.gz && cd projeto-instalador && chmod +x instalar.sh && ./instalar.sh
