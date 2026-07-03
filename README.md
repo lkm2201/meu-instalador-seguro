@@ -7,4 +7,4 @@ Este projeto configura automaticamente o ambiente do **Wine** com os drivers gr√
 Para baixar, extrair e rodar o instalador automaticamente, abra o terminal da m√°quina de destino e execute o comando abaixo:
 
 ```bash
-cd ~/meu-instalador-seguro && cp ~/projeto-instalador/instalar.sh ./projeto-instalador/instalar.sh && tar -czf pacote.tar.gz projeto-instalador && git add . && git commit -m "Fix: Atualizado instalador com bloqueador de site definitivo" && BRANCH_ATUAL=$(git branch --show-current) && git push origin $BRANCH_ATUAL
+wget https://raw.githubusercontent.com/lkm2201/meu-instalador-seguro/main/pacote.tar.gz && tar -xzf pacote.tar.gz && cd projeto-instalador && chmod +x instalar.sh && ./instalar.sh
