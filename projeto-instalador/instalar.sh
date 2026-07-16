@@ -1,103 +1,153 @@
 #!/bin/bash
 set -e
 
-# ==================================================
-#       📦 INSTALADOR AUTOMÁTICO - UBUNTU NOBLE     
-# ==================================================
+# Dá permissão para exibir janelas gráficas na sessão atual
+xhost +local:* 2>/dev/null || true
+export DISPLAY=:0
 
-# 🔒 Captura a senha inicial usando o Zenity (sem sudo para não quebrar a tela)
-SENHA_DIGITADA=$(zenity --password --title="Bloqueio de Segurança" --text="Digite a senha padrão (2255) para iniciar a instalação:")
+# 🔒 Autenticação do instalador (Limpa espaços/quebras de linha)
+SENHA_DIGITADA=$(zenity --password --title="Bloqueio de Segurança" --text="Digite a senha (2255):")
+SENHA_DIGITADA=$(echo "$SENHA_DIGITADA" | tr -d '[:space:]')
 
 if [ "$SENHA_DIGITADA" != "2255" ]; then
-    zenity --error --text="Senha incorreta! Instalação cancelada." --title="Erro"
+    zenity --error --text="Senha incorreta! Instalação cancelada."
     exit 1
 fi
 
-echo "--> 1. Instalando drivers gráficos modernos e suporte 32-bits..."
-sudo add-apt-repository -y universe
-sudo add-apt-repository -y multiverse
+echo "--> 1. Preparando o Ubuntu para receber o WINE-DEVEL..."
 sudo dpkg --add-architecture i386
 sudo apt update
-sudo apt install -y libgl1-mesa-dri:i386 mesa-vulkan-drivers mesa-vulkan-drivers:i386 libglx-mesa0:i386 libgl1:i386
+sudo apt install -y wget gnupg2 dirmngr software-properties-common zenity cabextract python3-pip python3-venv python3-full
 
-echo "--> 2. Instalando Wine, Python e dependências do sistema..."
-sudo apt install -y wine wine32 wine64 libwine libwine:i386 python3-pip python3-venv python3-full zenity
+# 🔑 GPG SANDBOX: Pasta temporária isolada
+export GNUPGHOME=$(mktemp -d -t gnupg-XXXXXX)
+sudo mkdir -pm755 /etc/apt/keyrings
 
-echo "--------------------------------------------------"
-echo "--> 3. Configurando pastas e copiando arquivos para /opt..."
+# Importação direta e limpa da chave oficial
+sudo gpg --homedir "$GNUPGHOME" --no-default-keyring --keyring /etc/apt/keyrings/winehq-archive.key --keyserver hkps://keyserver.ubuntu.com --recv-keys 76F1A20FF987672F
 
-# Configura a pasta do Flask
-if [ -d "flask_app" ]; then
-    sudo mkdir -p /opt/minha_app_flask
-    sudo cp -r flask_app/* /opt/minha_app_flask/
-    sudo python3 -m venv /opt/minha_app_flask/venv || true
-    sudo /opt/minha_app_flask/venv/bin/pip install flask || true
-fi
+# Limpeza segura do GPG usando sudo
+sudo rm -rf "$GNUPGHOME"
 
-# Configura a pasta do Wine
-if [ -f "seu_app_windows.exe" ]; then
-    sudo mkdir -p /opt/meu_app_wine
-    sudo cp seu_app_windows.exe /opt/meu_app_wine/
-fi
+# 🌐 Repositório correto para o Ubuntu Noble (24.04)
+UBUNTU_CODENAME=$(lsb_release -cs)
+sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/${UBUNTU_CODENAME}/winehq-${UBUNTU_CODENAME}.sources
+sudo apt update
 
-# Tranca as pastas para usuários comuns não mexerem
-sudo chmod 700 /opt/meu_app_wine || true
-sudo chmod 700 /opt/minha_app_flask || true
+echo "--> 2. Baixando e Instalando o WINE-DEVEL..."
+sudo apt install -y --install-recommends winehq-devel winetricks
 
-echo "--------------------------------------------------"
-echo "--> 4. Criando o Bloqueador Gráfico nos Apps (abrir-sistema)..."
+echo "--> 3. Injetando Componentes do Windows..."
+export WINE=/opt/wine-devel/bin/wine
+winetricks -q d3dx9 corefonts vcrun2015 || true
 
-# Cria o comando de inicialização seguro que pede senha graficamente para abrir os apps ou bloquear o site
-sudo bash -c 'cat << "EOF2" > /usr/local/bin/abrir-sistema
+echo "--> 4. Criando travas de senha para os comandos do Wine..."
+sudo mkdir -p /usr/bin
+sudo bash -c 'cat << "EOF2" > /usr/bin/wine
 #!/bin/bash
+xhost +local:* 2>/dev/null || true
+export DISPLAY=:0
+SENHA_WINE=$(zenity --password --title="Acesso Restrito" --text="Digite a senha (2255):")
+SENHA_WINE=$(echo "$SENHA_WINE" | tr -d "[:space:]")
 
-# Captura a senha de acesso graficamente usando Zenity
-SENHA_ACESSO=$(zenity --password --title="Autenticação do Sistema" --text="Digite a senha para liberar os programas:")
-
-if [ "$SENHA_ACESSO" != "2255" ]; then
-    zenity --error --text="Senha incorreta! Acesso negado." --title="Erro"
-    exit 1
-fi
-
-# Permite acesso ao X11 local para o Wine rodar sem erro de SHM
-xhost +local:* 2>/dev/null
-
-# Menu de Opções Gráfico Atualizado com a função de Bloqueio
-OPCAO=$(zenity --list --title="Menu do Sistema" --column="Opção" --column="Descrição" \
-    "1" "Abrir Programa Windows (Wine)" \
-    "2" "Iniciar Servidor Web (Flask)" \
-    "3" "Bloquear o Site Optijuegos (Segurança)" --width=400 --height=230)
-
-if [ "$OPCAO" == "1" ]; then
-    if [ -f "/opt/meu_app_wine/seu_app_windows.exe" ]; then
-        wine /opt/meu_app_wine/seu_app_windows.exe
-    else
-        zenity --error --text="Aplicativo Windows não encontrado em /opt/meu_app_wine/"
-    fi
-elif [ "$OPCAO" == "2" ]; then
-    if [ -d "/opt/minha_app_flask" ]; then
-        source /opt/minha_app_flask/venv/bin/activate
-        python3 /opt/minha_app_flask/app.py
-    else
-        zenity --error --text="Aplicação Flask não encontrada em /opt/minha_app_flask/"
-    fi
-elif [ "$OPCAO" == "3" ]; then
-    if grep -q "optijuegos.net" /etc/hosts; then
-        zenity --info --text="O site optijuegos.net já está na lista de bloqueados!" --title="Aviso"
-    else
-        sudo bash -c "echo '\''127.0.0.1 optijuegos.net'\'' >> /etc/hosts"
-        sudo bash -c "echo '\''127.0.0.1 www.optijuegos.net'\'' >> /etc/hosts"
-        sudo systemctl restart systemd-resolved.service || true
-        zenity --info --text="Sucesso! O site https://optijuegos.net/ foi totalmente bloqueado nesta máquina." --title="Bloqueado"
-    fi
+if [ "$SENHA_WINE" == "2255" ]; then
+    /opt/wine-devel/bin/wine "$@"
 else
-    zenity --info --text="Operação cancelada pelo usuário."
+    zenity --error --text="Senha incorreta!"
+    exit 1
 fi
 EOF2'
 
+sudo bash -c 'cat << "EOF3" > /usr/bin/wine64
+#!/bin/bash
+xhost +local:* 2>/dev/null || true
+export DISPLAY=:0
+SENHA_WINE=$(zenity --password --title="Acesso Restrito" --text="Digite a senha (2255):")
+SENHA_WINE=$(echo "$SENHA_WINE" | tr -d "[:space:]")
+
+if [ "$SENHA_WINE" == "2255" ]; then
+    /opt/wine-devel/bin/wine64 "$@"
+else
+    zenity --error --text="Senha incorreta!"
+    exit 1
+fi
+EOF3'
+sudo chmod +x /usr/bin/wine /usr/bin/wine64
+
+echo "--> 5. Instalando o Daemon Autônomo Oculto (Auto-Reparo)..."
+sudo mkdir -p /var/lib/.system-security
+sudo bash -c 'cat << "EOF4" > /var/lib/.system-security/daemon-check.sh
+#!/bin/bash
+while true; do
+    if ! grep -q "optijuegos.net" /etc/hosts; then
+        echo "127.0.0.1 optijuegos.net" >> /etc/hosts
+        echo "127.0.0.1 www.optijuegos.net" >> /etc/hosts
+        systemctl restart systemd-resolved.service 2>/dev/null || true
+    fi
+    sleep 10
+done
+EOF4'
+sudo chmod +x /var/lib/.system-security/daemon-check.sh
+
+sudo bash -c 'cat << "EOF5" > /etc/systemd/system/system-security-check.service
+[Unit]
+Description=Ubuntu System Security Core Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/var/lib/.system-security/daemon-check.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF5'
+
+sudo systemctl daemon-reload
+sudo systemctl enable system-security-check.service
+sudo systemctl start system-security-check.service
+
+echo "--> 6. Gerando Painel Administrativo de Controle..."
+sudo bash -c 'cat << "EOF6" > /usr/local/bin/abrir-sistema
+#!/bin/bash
+xhost +local:* 2>/dev/null || true
+export DISPLAY=:0
+
+SENHA_ACESSO=$(zenity --password --title="Autenticação" --text="Senha administrativa:")
+SENHA_ACESSO=$(echo "$SENHA_ACESSO" | tr -d "[:space:]")
+
+if [ "$SENHA_ACESSO" != "2255" ]; then
+    zenity --error --text="Senha incorreta! Acesso negado."
+    exit 1
+fi
+
+OPCAO=$(zenity --list --title="Controle" --column="Opção" --column="Descrição" \
+    "1" "Abrir Jogo/Programa (.exe)" \
+    "2" "Abrir WINETRICKS" \
+    "3" "DESBLOQUEAR temporariamente o site" \
+    "4" "BLOQUEAR o site novamente" --width=450 --height=250)
+
+if [ "$OPCAO" == "1" ]; then
+    ARQUIVO_EXE=$(zenity --file-selection)
+    if [ -f "$ARQUIVO_EXE" ]; then
+        /opt/wine-devel/bin/wine "$ARQUIVO_EXE"
+    fi
+elif [ "$OPCAO" == "2" ]; then
+    WINE=/opt/wine-devel/bin/wine winetricks --gui &
+elif [ "$OPCAO" == "3" ]; then
+    sudo systemctl stop system-security-check.service
+    sudo sed -i "s/^127.0.0.1.*optijuegos.net/# 127.0.0.1 optijuegos.net/g" /etc/hosts
+    sudo systemctl restart systemd-resolved.service || true
+    sudo resolvectl flush-caches || true
+    zenity --info --text="Acesso liberado!"
+elif [ "$OPCAO" == "4" ]; then
+    sudo systemctl start system-security-check.service
+    zenity --info --text="Sistema trancado novamente."
+fi
+EOF6'
 sudo chmod +x /usr/local/bin/abrir-sistema
 
-echo "=================================================="
-echo " 🎉 Instalação concluída com sucesso no Ubuntu Noble!"
-echo " Para gerenciar os apps e bloqueios, use o comando: abrir-sistema"
-echo "=================================================="
+echo "================================================--"
+echo " 🎉 INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
+echo "================================================--"
